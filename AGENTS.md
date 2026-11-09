@@ -79,8 +79,8 @@ change is a `feat` or a `fix`, with a message a user understands.
 ## Tools
 
 Dependabot does not update `mise.toml`. When touching the repository, run
-`mise outdated`, and bump the tools with `mise upgrade --bump` then `mise lock`
-in a separate `chore(deps):` commit, with `mise.lock`.
+`mise outdated`, and upgrade the tools with `mise upgrade` then `mise lock` in a
+separate `chore(deps):` commit, with `mise.lock`.
 
 ## Checks
 

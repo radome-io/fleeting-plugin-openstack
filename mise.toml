@@ -2,11 +2,11 @@
 lockfile = true
 
 [tools]
-go = "1.27.3"
-golangci-lint = "2.15.0"
-git-cliff = "2.14.2"
-syft = "1.57.0"
-"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
+go = "1.27"
+golangci-lint = "2"
+git-cliff = "2"
+syft = "1"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1"
 "go:gitlab.com/gitlab-org/fleeting/fleeting-artifact/cmd/fleeting-artifact" = "0.0.0-20261028004323-4b6f2931bc9b"
 
 [tasks.build]

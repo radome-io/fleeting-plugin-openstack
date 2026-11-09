@@ -21,11 +21,12 @@ mise run changelog  # release notes of the unreleased commits
 `AGENTS.md` holds the code conventions, for people and coding agents alike.
 
 Dependabot updates the Go modules and the GitHub Actions, not the tools of
-`mise.toml`: check them with `mise outdated`, bump them with
-`mise upgrade --bump`, then run `mise lock` to update `mise.lock` for every
-platform it lists. CI installs exactly the versions and checksums of
-`mise.lock`. A new Go release often fixes standard-library vulnerabilities that
-`mise run vuln` would otherwise report.
+`mise.toml`. It sets version ranges, and `mise.lock` the exact versions and
+checksums CI installs. Check them with `mise outdated`, upgrade them within
+their ranges with `mise upgrade` (`--bump` to raise a range), then run
+`mise lock` to update `mise.lock` for every platform it lists. A new Go release
+often fixes standard-library vulnerabilities that `mise run vuln` would
+otherwise report.
 
 ## Integration test
 
