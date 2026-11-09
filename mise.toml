@@ -1,0 +1,72 @@
+[settings]
+lockfile = true
+
+[tools]
+go = "1.27.3"
+golangci-lint = "2.15.0"
+git-cliff = "2.14.2"
+syft = "1.57.0"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
+"go:gitlab.com/gitlab-org/fleeting/fleeting-artifact/cmd/fleeting-artifact" = "0.0.0-20261028004323-4b6f2931bc9b"
+
+[tasks.build]
+description = "Build the plugin into out/, or into $OUT"
+env = { CGO_ENABLED = "0" }
+run = '''
+pkg=github.com/radome-io/fleeting-plugin-openstack
+revision=$(git rev-parse -q --verify --short=8 HEAD || echo unknown)
+reference=${REFERENCE:-$(git symbolic-ref -q --short HEAD || echo unknown)}
+
+go build -trimpath \
+  -ldflags "-s -w -X $pkg.version=${VERSION:-dev} -X $pkg.revision=$revision -X $pkg.reference=$reference -X $pkg.builtAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  -o "${OUT:-out/fleeting-plugin-openstack}" ./cmd/fleeting-plugin-openstack
+'''
+
+[tasks.dist]
+description = "Build the release binaries into dist/<os>/<arch>/plugin, the layout fleeting-artifact publishes"
+run = '''
+rm -rf dist
+
+for arch in amd64 arm64; do
+  GOOS=linux GOARCH=$arch OUT=dist/linux/$arch/plugin mise run build
+done
+'''
+
+[tasks.package]
+description = "Write the GitHub release files to release/: binaries, their SPDX SBOMs, and checksums"
+depends = ["dist"]
+env = { SYFT_CHECK_FOR_APP_UPDATE = "false" }
+run = '''
+rm -rf release
+mkdir release
+for arch in amd64 arm64; do
+  binary=release/fleeting-plugin-openstack-linux-$arch
+  cp dist/linux/$arch/plugin "$binary"
+  syft scan --quiet "file:$binary" --output "spdx-json=$binary.spdx.json"
+done
+(cd release && sha256sum -- * > checksums.txt)
+'''
+
+[tasks.changelog]
+description = "Show the release notes of the commits since the last release"
+run = "git cliff --unreleased --strip header"
+
+[tasks.test]
+description = "Run the unit tests"
+run = "go test -race ./..."
+
+[tasks.lint]
+description = "Lint, and check formatting"
+run = ["golangci-lint run", "golangci-lint fmt --diff"]
+
+[tasks.fix]
+description = "Format, and apply the safe lint fixes"
+run = ["golangci-lint fmt", "golangci-lint run --fix"]
+
+[tasks.vuln]
+description = "Check the dependencies for known vulnerabilities"
+run = "govulncheck ./..."
+
+[tasks.integration]
+description = "Scale a real group up and down: creates billed servers (see README.md)"
+run = "go test -run '^TestProvisioning$' -count=1 -timeout 30m -v ."

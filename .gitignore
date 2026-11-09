@@ -1,0 +1,10 @@
+/dist/
+/out/
+/release/
+
+/release-notes.md
+
+clouds.yaml
+secure.yaml
+mise.local.toml
+fnox.local.toml
