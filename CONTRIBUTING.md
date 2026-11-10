@@ -6,7 +6,7 @@ credentials, and the runner's logs.
 
 ## Development
 
-The tools are pinned in `mise.toml`:
+The tools are declared in `mise.toml`, and pinned in `mise.lock`:
 
 ```shell
 mise install
@@ -21,10 +21,10 @@ mise run changelog  # release notes of the unreleased commits
 `AGENTS.md` holds the code conventions, for people and coding agents alike.
 
 Dependabot updates the Go modules and the GitHub Actions, not the tools of
-`mise.toml`. It sets version ranges, and `mise.lock` the exact versions and
-checksums CI installs. Check them with `mise outdated`, upgrade them within
-their ranges with `mise upgrade` (`--bump` to raise a range), then run
-`mise lock` to update `mise.lock` for every platform it lists. A new Go release
+`mise.toml`. `mise.toml` sets version ranges, and `mise.lock` the exact
+versions and checksums CI installs. Check them with `mise outdated`, upgrade
+them within their ranges with `mise upgrade` (`--bump` to raise a range), then
+run `mise lock` to update `mise.lock` for every platform it lists. A new Go release
 often fixes standard-library vulnerabilities that `mise run vuln` would
 otherwise report.
 
