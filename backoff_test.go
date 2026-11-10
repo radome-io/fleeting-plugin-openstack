@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/gitlab-org/fleeting/fleeting/provider"
 )
 
 var start = time.Date(2026, 11, 9, 12, 0, 0, 0, time.UTC)
@@ -90,13 +91,17 @@ func TestBackoffIgnoresOtherServers(t *testing.T) {
 func TestBackoffForgetsServersDeletedBeforeComingUp(t *testing.T) {
 	var b backoff
 	b.created("listed")
+	b.created("deleting")
 	b.created("not-listed-yet")
 
-	b.listed(map[string]bool{"listed": true})
-	b.listed(map[string]bool{})
+	b.listed(map[string]provider.State{"listed": provider.StateCreating, "deleting": provider.StateDeleting})
+	b.listed(map[string]provider.State{"deleting": provider.StateDeleting})
 
 	_, pause, _ := b.failed(map[string]string{"listed": "ERROR"}, start)
 	assert.Zero(t, pause, "a server listed then gone was deleted")
+
+	_, pause, _ = b.failed(map[string]string{"deleting": "ERROR"}, start)
+	assert.Zero(t, pause, "a server listed as being deleted was deleted")
 
 	_, pause, _ = b.failed(map[string]string{"not-listed-yet": "ERROR"}, start)
 	assert.Positive(t, pause, "a server never listed yet still counts")

@@ -5,6 +5,8 @@ import (
 	"slices"
 	"sync"
 	"time"
+
+	"gitlab.com/gitlab-org/fleeting/fleeting/provider"
 )
 
 // The pause doubles with each failure in a row, within these bounds.
@@ -18,7 +20,7 @@ const (
 // again. Only servers this process created count.
 type backoff struct {
 	mu       sync.Mutex
-	pending  map[string]bool // servers not up yet: whether a listing showed them
+	pending  map[string]bool // servers not up yet: whether a listing showed them building
 	failures int
 	until    time.Time
 }
@@ -91,17 +93,20 @@ func (b *backoff) fail(now time.Time) (failures int, pause time.Duration) {
 	return b.failures, pause
 }
 
-// listed forgets the servers listed before and gone now: deleted before coming
-// up, they are not failures.
-func (b *backoff) listed(servers map[string]bool) {
+// listed records the states of the listed servers. A pending server listed in
+// another state than creating, or gone after a listing showed it, was deleted
+// before it came up: not a failure. One that came up or broke left pending
+// earlier in Update, in running or failed.
+func (b *backoff) listed(states map[string]provider.State) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	for id, seen := range b.pending {
+		state, ok := states[id]
 		switch {
-		case servers[id]:
+		case state == provider.StateCreating:
 			b.pending[id] = true
-		case seen:
+		case ok || seen:
 			delete(b.pending, id)
 		}
 	}
