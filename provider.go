@@ -199,7 +199,7 @@ func (g *InstanceGroup) Increase(ctx context.Context, n int) (int, error) {
 	allowed, pause := g.backoff.allowed(n, time.Now())
 	switch {
 	case pause > 0:
-		g.log.Debug("scale-up paused", "remaining", pause)
+		g.log.Debug("scale-up paused", "remaining", pause.String())
 
 		return 0, nil
 	case allowed == 0:
@@ -379,9 +379,11 @@ func (g *InstanceGroup) deleteBroken(ctx context.Context, s cloud.Server, reason
 	}
 }
 
+// logPause logs a pause. Durations are logged as strings: under fleeting, the
+// plugin logs in JSON, where a time.Duration is a number of nanoseconds.
 func (g *InstanceGroup) logPause(failures int, pause time.Duration, reason string) {
 	g.log.Warn("pausing scale-ups: new servers fail to come up",
-		"failures_in_a_row", failures, "pause", pause, "reason", reason)
+		"failures_in_a_row", failures, "pause", pause.String(), "reason", reason)
 }
 
 func (g *InstanceGroup) serverName() string {

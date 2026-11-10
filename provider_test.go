@@ -488,7 +488,9 @@ func TestIncreaseCountsServersFailingTogetherOnce(t *testing.T) {
 	var logs strings.Builder
 	backend := newBackend()
 	g := newGroup(backend, validConfig())
-	_, err := g.Init(t.Context(), hclog.New(&hclog.LoggerOptions{Output: &logs}), staticCredentials)
+	// Under fleeting, the plugin logs in JSON, which the runner decodes.
+	logger := hclog.New(&hclog.LoggerOptions{Output: &logs, JSONFormat: true})
+	_, err := g.Init(t.Context(), logger, staticCredentials)
 	require.NoError(t, err)
 
 	_, err = g.Increase(t.Context(), 6)
@@ -501,7 +503,8 @@ func TestIncreaseCountsServersFailingTogetherOnce(t *testing.T) {
 	states(t, g)
 
 	assert.Equal(t, 1, strings.Count(logs.String(), "pausing scale-ups"))
-	assert.Contains(t, logs.String(), "failures_in_a_row=1 pause=30s")
+	assert.Contains(t, logs.String(), `"failures_in_a_row":1`)
+	assert.Contains(t, logs.String(), `"pause":"30s"`, "a duration, not nanoseconds")
 }
 
 func TestIncreaseBacksOffAfterABuildTimeout(t *testing.T) {
