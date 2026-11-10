@@ -10,7 +10,10 @@ carrying its tag, and the quotas and bill stay separate from your other
 workloads.
 
 In the project, under **Project Management → Users**, create a user with the
-**Compute Operator** role only. The password is shown once.
+**Compute Operator** role only. The password is shown once. To boot servers
+from a volume (`server.volume_size`), give it the **Volume Operator** role too:
+with Compute Operator alone, servers fail to build with `Policy doesn't allow
+volume:create_from_image`.
 
 OVHcloud's IAM service accounts sign in with OpenID Connect, which the plugin
 does not support: use this OpenStack user.
@@ -26,6 +29,8 @@ application credential for the plugin, limited to Compute Operator:
 openstack --os-cloud openstack application credential create fleeting \
   --role compute_operator -f yaml -c id -c secret
 ```
+
+To boot from volumes, add `--role volume_operator`.
 
 Replace the entry's `auth` with the credential, and set `auth_type`. The
 password is no longer needed. This guide names the entry `ovh`:
