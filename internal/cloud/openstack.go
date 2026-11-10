@@ -14,6 +14,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servergroups"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/config"
 	"github.com/gophercloud/gophercloud/v2/openstack/config/clouds"
@@ -164,7 +165,10 @@ func (o *openStack) CreateServer(ctx context.Context, req CreateRequest) (string
 		opts = keypairs.CreateOptsExt{CreateOptsBuilder: opts, KeyName: req.KeyName}
 	}
 
-	created, err := servers.Create(ctx, o.nova, opts, nil).Extract()
+	// An empty Group sends no hints.
+	hints := servers.SchedulerHintOpts{Group: req.ServerGroupID}
+
+	created, err := servers.Create(ctx, o.nova, opts, hints).Extract()
 	if err != nil {
 		return "", fmt.Errorf("create server %s: %w", req.Name, err)
 	}
@@ -225,6 +229,22 @@ func (o *openStack) FindSecurityGroup(ctx context.Context, ref string) (string, 
 	}
 
 	group, err := pick("security group", ref, all, func(g groups.SecGroup) (string, string) { return g.ID, g.Name })
+
+	return group.ID, err
+}
+
+func (o *openStack) FindServerGroup(ctx context.Context, ref string) (string, error) {
+	pages, err := servergroups.List(o.nova, nil).AllPages(ctx)
+	if err != nil {
+		return "", fmt.Errorf("list server groups: %w", err)
+	}
+
+	all, err := servergroups.ExtractServerGroups(pages)
+	if err != nil {
+		return "", fmt.Errorf("read server groups: %w", err)
+	}
+
+	group, err := pick("server group", ref, all, func(g servergroups.ServerGroup) (string, string) { return g.ID, g.Name })
 
 	return group.ID, err
 }

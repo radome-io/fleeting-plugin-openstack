@@ -21,6 +21,7 @@ type Client interface {
 	FindFlavor(ctx context.Context, ref string) (id string, err error)
 	FindNetwork(ctx context.Context, ref string) (Network, error)
 	FindSecurityGroup(ctx context.Context, ref string) (id string, err error)
+	FindServerGroup(ctx context.Context, ref string) (id string, err error)
 	CheckKeyPair(ctx context.Context, name string) error
 	// FindImage returns the newest active image with that name, or else the
 	// image with that ID.
@@ -75,4 +76,5 @@ type CreateRequest struct {
 	Metadata         map[string]string
 	Tags             []string
 	AvailabilityZone string
+	ServerGroupID    string
 }

@@ -33,6 +33,7 @@ func newBackend() *fake.Client {
 		Flavors:        map[string]string{"m1.large": "flavor-large"},
 		Networks:       map[string]string{"public": "network-public"},
 		SecurityGroups: map[string]string{"ssh-from-manager": "group-ssh"},
+		ServerGroups:   map[string]string{"workers": "group-workers"},
 		KeyPairs:       map[string]bool{"runner": true},
 		Images: map[string]cloud.Image{
 			"Ubuntu 24.04": {ID: "image-ubuntu", OSType: "linux", Architecture: "x86_64"},
@@ -140,6 +141,12 @@ func TestInitFails(t *testing.T) {
 			change:   func(c *Config) { c.Server.SecurityGroups = []string{"ssh-from-anywhere"} },
 			settings: staticCredentials,
 			err:      `server.security_groups: security group "ssh-from-anywhere": not found`,
+		},
+		{
+			name:     "unknown server group",
+			change:   func(c *Config) { c.Server.ServerGroup = "spread" },
+			settings: staticCredentials,
+			err:      `server.server_group: server group "spread": not found`,
 		},
 		{
 			name:     "unknown key pair",
@@ -337,6 +344,7 @@ func TestIncrease(t *testing.T) {
 	config.Server.UserData = "#cloud-config\n"
 	config.Server.ConfigDrive = true
 	config.Server.Metadata = map[string]string{"purpose": "ci"}
+	config.Server.ServerGroup = "workers"
 	g := initGroup(t, backend, config)
 
 	succeeded, err := g.Increase(t.Context(), 2)
@@ -361,6 +369,7 @@ func TestIncrease(t *testing.T) {
 			ConfigDrive:      true,
 			Metadata:         map[string]string{"purpose": "ci"},
 			Tags:             []string{groupTag},
+			ServerGroupID:    "group-workers",
 		}, req)
 	}
 

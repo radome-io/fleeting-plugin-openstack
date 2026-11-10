@@ -61,6 +61,7 @@ type ServerConfig struct {
 	Tags             []string          `json:"tags"` // added to the group tag
 	Metadata         map[string]string `json:"metadata"`
 	AvailabilityZone string            `json:"availability_zone"`
+	ServerGroup      string            `json:"server_group"` // name or ID
 }
 
 // UnmarshalJSON decodes the plugin_config, rejecting unknown keys.

@@ -22,7 +22,7 @@ configuration, and its release notes say so.
 | SSH | ✅ |
 | Windows and WinRM | ⚠️ Untested |
 | Password and application credentials | ✅ |
-| Flavors, images, networks and security groups by name or ID | ✅ |
+| Flavors, images, networks, security groups and server groups by name or ID | ✅ |
 | New images without a restart | ✅ |
 | User data, config drive, tags and metadata | ✅ |
 | IPv4 and IPv6 | ✅ |
@@ -31,13 +31,13 @@ configuration, and its release notes say so.
 | Broken server cleanup, backoff and retries | ✅ |
 | Credentials provisioned per server | ❌ |
 | Suspend and resume | ❌ |
-| Boot from volume, server groups | ❌ |
+| Boot from volume | ❌ |
 
 ## Requirements
 
 - Nova API microversion 2.52 or later.
 - An OpenStack user that can create, list and delete servers, list flavors,
-  networks and security groups, and read images and key pairs.
+  networks, security groups and server groups, and read images and key pairs.
 - An image that can run your jobs, or a stock image with user data that
   installs what they need, such as Docker.
 - An SSH key or password the image accepts. The plugin does not provision
@@ -142,13 +142,14 @@ runcmd:
 | `server.tags` | | Extra Nova tags. |
 | `server.metadata` | | Server metadata. Keys of 1 to 255 characters, values of up to 255. |
 | `server.availability_zone` | | Where servers are created. |
+| `server.server_group` | | Name or ID of a Nova server group the servers join. Its `server_group_members` quota, often 10, then limits `max_instances`, and a hard `anti-affinity` policy needs a host per server: prefer `soft-anti-affinity`. |
 | `address_network` | | The network to connect on, by name or ID, one of `server.networks`. Required when servers have addresses on several networks. |
 | `address_family` | `ipv4` | `ipv4` or `ipv6`. |
 | `build_timeout` | `15m` | How long a server may stay in `BUILD` before it is deleted. |
 
 The plugin refuses to start on an unknown key, when the flavor, a network,
-a security group, the key pair or the image does not exist, or when
-`address_network` is not one of `server.networks`.
+a security group, the server group, the key pair or the image does not exist,
+or when `address_network` is not one of `server.networks`.
 
 The runner's `max_instances` limits the group, up to 1000 servers.
 

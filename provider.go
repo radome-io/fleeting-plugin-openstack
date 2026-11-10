@@ -40,6 +40,7 @@ type InstanceGroup struct {
 	networkIDs       []string
 	addressNetwork   string // address_network's name, the key Nova lists addresses under
 	securityGroupIDs []string
+	serverGroupID    string
 	addressVersion   int
 	buildTimeout     time.Duration
 	userData         string
@@ -54,8 +55,8 @@ type InstanceGroup struct {
 }
 
 // Init validates the configuration, checks that the flavor, networks, security
-// groups, key pair and image exist, and that address_network is one of the
-// networks.
+// groups, server group, key pair and image exist, and that address_network is
+// one of the networks.
 func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings provider.Settings) (provider.ProviderInfo, error) {
 	if g.connect == nil {
 		g.connect = cloud.New
@@ -106,6 +107,14 @@ func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings pro
 		return provider.ProviderInfo{}, fmt.Errorf("server.security_groups: %w", err)
 	}
 
+	var serverGroupID string
+	if g.Server.ServerGroup != "" {
+		serverGroupID, err = client.FindServerGroup(ctx, g.Server.ServerGroup)
+		if err != nil {
+			return provider.ProviderInfo{}, fmt.Errorf("server.server_group: %w", err)
+		}
+	}
+
 	if g.Server.KeyName != "" {
 		if err := client.CheckKeyPair(ctx, g.Server.KeyName); err != nil {
 			return provider.ProviderInfo{}, fmt.Errorf("server.key_name: %w", err)
@@ -123,6 +132,7 @@ func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings pro
 	g.networkIDs = networkIDs
 	g.addressNetwork = addressNetwork
 	g.securityGroupIDs = securityGroupIDs
+	g.serverGroupID = serverGroupID
 	g.addressVersion = parsed.addressVersion
 	g.buildTimeout = parsed.buildTimeout
 	g.deletions = make(map[string]time.Time)
@@ -235,6 +245,7 @@ func (g *InstanceGroup) create(ctx context.Context, n int) (int, error) {
 			Metadata:         g.Server.Metadata,
 			Tags:             append([]string{g.tag()}, g.Server.Tags...),
 			AvailabilityZone: g.Server.AvailabilityZone,
+			ServerGroupID:    g.serverGroupID,
 		}
 
 		id, err := g.client.CreateServer(ctx, req)
