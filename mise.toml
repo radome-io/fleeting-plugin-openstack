@@ -1,5 +1,8 @@
 [settings]
 lockfile = true
+minimum_release_age_excludes = [
+  "go",
+]
 
 [tools]
 go = "1.27"
