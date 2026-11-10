@@ -24,14 +24,14 @@ configuration, and its release notes say so.
 | Password and application credentials | ✅ |
 | Flavors, images, networks and security groups by name or ID | ✅ |
 | New images without a restart | ✅ |
-| User data, tags and metadata | ✅ |
+| User data, config drive, tags and metadata | ✅ |
 | IPv4 and IPv6 | ✅ |
 | Floating IPs | ✅ When the cloud attaches them |
 | Multi-arch servers (amd64, arm64) | ✅ |
 | Broken server cleanup, backoff and retries | ✅ |
 | Credentials provisioned per server | ❌ |
 | Suspend and resume | ❌ |
-| Boot from volume, config drive, server groups | ❌ |
+| Boot from volume, server groups | ❌ |
 
 ## Requirements
 
@@ -138,6 +138,7 @@ runcmd:
 | `server.key_name` | | A Nova key pair. |
 | `server.user_data` | | User data, passed as is. An inline cloud-config must start at the first column: TOML keeps the indentation of multi-line strings. |
 | `server.user_data_file` | | A file to read the user data from, at startup. Excludes `server.user_data`. |
+| `server.config_drive` | `false` | Attach a config drive with the user data and metadata, for clouds without a metadata service. |
 | `server.tags` | | Extra Nova tags. |
 | `server.metadata` | | Server metadata. Keys of 1 to 255 characters, values of up to 255. |
 | `server.availability_zone` | | Where servers are created. |

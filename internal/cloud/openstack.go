@@ -142,6 +142,12 @@ func (o *openStack) CreateServer(ctx context.Context, req CreateRequest) (string
 		userData = []byte(base64.StdEncoding.EncodeToString([]byte(req.UserData)))
 	}
 
+	// Unset, the cloud and the image decide.
+	var configDrive *bool
+	if req.ConfigDrive {
+		configDrive = &req.ConfigDrive
+	}
+
 	var opts servers.CreateOptsBuilder = servers.CreateOpts{
 		Name:             req.Name,
 		FlavorRef:        req.FlavorID,
@@ -149,6 +155,7 @@ func (o *openStack) CreateServer(ctx context.Context, req CreateRequest) (string
 		Networks:         attached,
 		SecurityGroups:   req.SecurityGroupIDs,
 		UserData:         userData,
+		ConfigDrive:      configDrive,
 		Metadata:         req.Metadata,
 		Tags:             req.Tags,
 		AvailabilityZone: req.AvailabilityZone,
