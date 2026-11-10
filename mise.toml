@@ -69,5 +69,5 @@ description = "Check the dependencies for known vulnerabilities"
 run = "govulncheck ./..."
 
 [tasks.integration]
-description = "Scale a real group up and down: creates billed servers (see README.md)"
+description = "Scale a real group up and down: creates billed servers (see CONTRIBUTING.md)"
 run = "go test -run '^TestProvisioning$' -count=1 -timeout 30m -v ."
