@@ -141,12 +141,13 @@ runcmd:
 | `server.tags` | | Extra Nova tags. |
 | `server.metadata` | | Server metadata. Keys of 1 to 255 characters, values of up to 255. |
 | `server.availability_zone` | | Where servers are created. |
-| `address_network` | | The network to connect on, by name. Required when servers have addresses on several networks. |
+| `address_network` | | The network to connect on, by name or ID, one of `server.networks`. Required when servers have addresses on several networks. |
 | `address_family` | `ipv4` | `ipv4` or `ipv6`. |
 | `build_timeout` | `15m` | How long a server may stay in `BUILD` before it is deleted. |
 
-The plugin refuses to start on an unknown key, or when the flavor, a network,
-a security group, the key pair or the image does not exist.
+The plugin refuses to start on an unknown key, when the flavor, a network,
+a security group, the key pair or the image does not exist, or when
+`address_network` is not one of `server.networks`.
 
 The runner's `max_instances` limits the group, up to 1000 servers.
 

@@ -261,13 +261,13 @@ func TestFindNetwork(t *testing.T) {
 	})
 	client := newTestClient(t, mux)
 
-	id, err := client.FindNetwork(t.Context(), "public")
+	network, err := client.FindNetwork(t.Context(), "public")
 	require.NoError(t, err)
-	assert.Equal(t, "network-public", id)
+	assert.Equal(t, Network{ID: "network-public", Name: "public"}, network)
 
-	id, err = client.FindNetwork(t.Context(), "network-ci")
+	network, err = client.FindNetwork(t.Context(), "network-ci")
 	require.NoError(t, err)
-	assert.Equal(t, "network-ci", id)
+	assert.Equal(t, Network{ID: "network-ci", Name: "ci"}, network)
 
 	_, err = client.FindNetwork(t.Context(), "missing")
 	require.ErrorIs(t, err, ErrNotFound)
@@ -469,9 +469,9 @@ func TestNew(t *testing.T) {
 	_, err = client.ListServers(t.Context(), "fleeting:runner")
 	require.NoError(t, err)
 
-	id, err := client.FindNetwork(t.Context(), "public")
+	network, err := client.FindNetwork(t.Context(), "public")
 	require.NoError(t, err)
-	assert.Equal(t, "network-public", id)
+	assert.Equal(t, Network{ID: "network-public", Name: "public"}, network)
 }
 
 func TestNewFailsWithoutTheMicroversion(t *testing.T) {

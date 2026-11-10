@@ -130,6 +130,12 @@ func TestInitFails(t *testing.T) {
 			err:      `server.networks: network "ci": not found`,
 		},
 		{
+			name:     "address network not among the networks",
+			change:   func(c *Config) { c.AddressNetwork = "ci" },
+			settings: staticCredentials,
+			err:      `address_network "ci" must be one of server.networks`,
+		},
+		{
 			name:     "unknown security group",
 			change:   func(c *Config) { c.Server.SecurityGroups = []string{"ssh-from-anywhere"} },
 			settings: staticCredentials,
@@ -608,6 +614,33 @@ func TestConnectInfo(t *testing.T) {
 		InternalAddr: "203.0.113.10",
 		ExternalAddr: "203.0.113.10",
 	}, info)
+}
+
+func TestConnectInfoOnTheAddressNetwork(t *testing.T) {
+	for _, ref := range []string{"ci", "network-ci"} {
+		t.Run(ref, func(t *testing.T) {
+			backend := newBackend()
+			backend.Networks["ci"] = "network-ci"
+			config := validConfig()
+			config.Server.Networks = []string{"public", "ci"}
+			config.AddressNetwork = ref
+			g := initGroup(t, backend, config)
+			backend.Add(cloud.Server{
+				ID:      "a",
+				Status:  "ACTIVE",
+				ImageID: "image-ubuntu",
+				Addresses: []cloud.Address{
+					{Network: "ci", IP: "10.0.0.5", Version: 4},
+					{Network: "public", IP: "203.0.113.10", Version: 4},
+				},
+			}, groupTag)
+
+			info, err := g.ConnectInfo(t.Context(), "a")
+
+			require.NoError(t, err)
+			assert.Equal(t, "10.0.0.5", info.InternalAddr)
+		})
+	}
 }
 
 func TestConnectInfoPlatform(t *testing.T) {
