@@ -81,6 +81,9 @@ fnox exec -- mise run integration
   it as a [Conventional Commit](https://www.conventionalcommits.org/), since the
   release notes are generated from it. A change users see is a `feat` or a
   `fix`; a breaking one carries a `!`, as in `feat!: drop the max_size key`.
+- A maintainer may instead rebase-merge a series of commits that each stand on
+  their own: each passes `mise run lint`, `mise run test` and `mise run vuln`,
+  and is one Conventional Commit, which becomes one line of the release notes.
 - The plugin uses the OpenStack APIs only: no behavior specific to one cloud.
 
 ## Releasing
