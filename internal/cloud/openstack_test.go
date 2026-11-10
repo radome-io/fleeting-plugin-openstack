@@ -169,6 +169,34 @@ func TestCreateServer(t *testing.T) {
 			},
 		},
 		{
+			name: "boot from a volume",
+			req: CreateRequest{
+				Name:       "runner-abcdefgh",
+				FlavorID:   "flavor-large",
+				ImageID:    "image-ubuntu",
+				VolumeSize: 20,
+				VolumeType: "ssd",
+				NetworkIDs: []string{"network-public"},
+			},
+			body: map[string]any{
+				"server": map[string]any{
+					"name":      "runner-abcdefgh",
+					"flavorRef": "flavor-large",
+					"imageRef":  "",
+					"block_device_mapping_v2": []any{map[string]any{
+						"source_type":           "image",
+						"uuid":                  "image-ubuntu",
+						"destination_type":      "volume",
+						"volume_size":           float64(20),
+						"volume_type":           "ssd",
+						"boot_index":            float64(0),
+						"delete_on_termination": true,
+					}},
+					"networks": []any{map[string]any{"uuid": "network-public"}},
+				},
+			},
+		},
+		{
 			name: "defaults",
 			req: CreateRequest{
 				Name:       "runner-abcdefgh",
@@ -536,11 +564,36 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewFailsWithoutTheMicroversion(t *testing.T) {
-	mux := http.NewServeMux()
-	cloudsConfig := serveCloud(t, mux)
-	serveComputeVersion(t, mux, "2.38")
+	tests := []struct {
+		name   string
+		newest string
+		opts   Options
+		err    string
+	}{
+		{
+			name:   "tags at creation",
+			newest: "2.38",
+			err:    "negotiate the compute API version: microversion 2.52 not supported",
+		},
+		{
+			name:   "volume types",
+			newest: "2.66",
+			opts:   Options{VolumeTypes: true},
+			err:    "negotiate the compute API version: microversion 2.67 not supported",
+		},
+	}
 
-	_, err := New(t.Context(), Options{Cloud: "test", CloudsConfig: cloudsConfig})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux := http.NewServeMux()
+			opts := tt.opts
+			opts.Cloud = "test"
+			opts.CloudsConfig = serveCloud(t, mux)
+			serveComputeVersion(t, mux, tt.newest)
 
-	require.ErrorContains(t, err, "negotiate the compute API version: microversion 2.52 not supported")
+			_, err := New(t.Context(), opts)
+
+			require.ErrorContains(t, err, tt.err)
+		})
+	}
 }

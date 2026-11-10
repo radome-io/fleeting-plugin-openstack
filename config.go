@@ -51,7 +51,10 @@ type ServerConfig struct {
 	Flavor string `json:"flavor"` // name or ID
 	// Image is a name or ID. A name resolves to the newest active image at
 	// each scale-up.
-	Image            string            `json:"image"`
+	Image string `json:"image"`
+	// VolumeSize, in GiB, boots servers from a new volume made from the image.
+	VolumeSize       int               `json:"volume_size"`
+	VolumeType       string            `json:"volume_type"`     // with volume_size
 	Networks         []string          `json:"networks"`        // names or IDs
 	SecurityGroups   []string          `json:"security_groups"` // names or IDs
 	KeyName          string            `json:"key_name"`
@@ -100,6 +103,12 @@ func (c *Config) validate() (parsed, error) {
 	}
 	if c.Server.Image == "" {
 		errs = append(errs, errors.New("server.image is required"))
+	}
+	if c.Server.VolumeSize < 0 {
+		errs = append(errs, fmt.Errorf("server.volume_size %d must be a positive number of GiB", c.Server.VolumeSize))
+	}
+	if c.Server.VolumeType != "" && c.Server.VolumeSize == 0 {
+		errs = append(errs, errors.New("server.volume_type needs server.volume_size"))
 	}
 	if len(c.Server.Networks) == 0 {
 		errs = append(errs, errors.New("server.networks needs at least one network"))

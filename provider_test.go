@@ -175,6 +175,44 @@ func TestInitFails(t *testing.T) {
 	}
 }
 
+func TestInitConnectsWithTheSettings(t *testing.T) {
+	tests := []struct {
+		name        string
+		volumeType  string
+		volumeTypes bool
+	}{
+		{name: "volume without a type", volumeTypes: false},
+		{name: "volume with a type", volumeType: "ssd", volumeTypes: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got cloud.Options
+			config := validConfig()
+			config.CloudsConfig = "/etc/gitlab-runner/clouds.yaml"
+			config.Server.VolumeSize = 20
+			config.Server.VolumeType = tt.volumeType
+			g := &InstanceGroup{
+				Config: config,
+				connect: func(_ context.Context, opts cloud.Options) (cloud.Client, error) {
+					got = opts
+
+					return newBackend(), nil
+				},
+			}
+
+			_, err := g.Init(t.Context(), hclog.NewNullLogger(), staticCredentials)
+
+			require.NoError(t, err)
+			assert.Equal(t, cloud.Options{
+				Cloud:        "mycloud",
+				CloudsConfig: "/etc/gitlab-runner/clouds.yaml",
+				VolumeTypes:  tt.volumeTypes,
+			}, got, "only a volume type needs microversion 2.67")
+		})
+	}
+}
+
 func TestInitFailsToConnect(t *testing.T) {
 	g := &InstanceGroup{
 		Config: validConfig(),
@@ -339,6 +377,8 @@ func TestUpdateFailsWhenListingFails(t *testing.T) {
 func TestIncrease(t *testing.T) {
 	backend := newBackend()
 	config := validConfig()
+	config.Server.VolumeSize = 20
+	config.Server.VolumeType = "ssd"
 	config.Server.SecurityGroups = []string{"ssh-from-manager"}
 	config.Server.KeyName = "runner"
 	config.Server.UserData = "#cloud-config\n"
@@ -362,6 +402,8 @@ func TestIncrease(t *testing.T) {
 			Name:             req.Name,
 			FlavorID:         "flavor-large",
 			ImageID:          "image-ubuntu",
+			VolumeSize:       20,
+			VolumeType:       "ssd",
 			NetworkIDs:       []string{"network-public"},
 			SecurityGroupIDs: []string{"group-ssh"},
 			KeyName:          "runner",
@@ -696,6 +738,13 @@ func TestConnectInfoPlatform(t *testing.T) {
 		},
 		{
 			name:     "volume-backed server",
+			images:   map[string]cloud.Image{"Ubuntu 24.04": {ID: "image-arm", OSType: "linux", Architecture: "aarch64"}},
+			os:       "linux",
+			arch:     "arm64",
+			protocol: provider.ProtocolSSH,
+		},
+		{
+			name:     "volume-backed server, server.image gone",
 			os:       "linux",
 			arch:     "amd64",
 			protocol: provider.ProtocolSSH,
@@ -722,6 +771,34 @@ func TestConnectInfoPlatform(t *testing.T) {
 			assert.Equal(t, tt.protocol, info.Protocol)
 		})
 	}
+}
+
+func TestConnectInfoRemembersThePlatformOfVolumeBackedServers(t *testing.T) {
+	backend := newBackend()
+	config := validConfig()
+	config.Server.VolumeSize = 20
+	g := initGroup(t, backend, config)
+	backend.Images["Ubuntu 24.04"] = cloud.Image{ID: "image-arm", OSType: "linux", Architecture: "aarch64"}
+
+	_, err := g.Increase(t.Context(), 1)
+	require.NoError(t, err)
+	s, err := backend.GetServer(t.Context(), "server-1")
+	require.NoError(t, err)
+	require.Empty(t, s.ImageID, "Nova lists no image for a volume-backed server")
+	s.Status = "ACTIVE"
+	s.Addresses = []cloud.Address{{Network: "public", IP: "203.0.113.10", Version: 4}}
+	require.NoError(t, backend.Set(s))
+
+	info, err := g.ConnectInfo(t.Context(), "server-1")
+	require.NoError(t, err)
+	assert.Equal(t, "arm64", info.Arch)
+
+	delete(backend.Images, "Ubuntu 24.04")
+	backend.GetImageErr = errors.New("image API unavailable")
+
+	info, err = g.ConnectInfo(t.Context(), "server-1")
+	require.NoError(t, err, "the platform is remembered, Glance is not called again")
+	assert.Equal(t, "arm64", info.Arch)
 }
 
 func TestGoArch(t *testing.T) {

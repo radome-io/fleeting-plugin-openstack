@@ -153,7 +153,8 @@ func (c *Client) GetServer(_ context.Context, id string) (cloud.Server, error) {
 	return e.server, nil
 }
 
-// CreateServer adds a server in BUILD.
+// CreateServer adds a server in BUILD. Like Nova, it lists no image for a
+// server that boots from a volume.
 func (c *Client) CreateServer(_ context.Context, req cloud.CreateRequest) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -168,12 +169,16 @@ func (c *Client) CreateServer(_ context.Context, req cloud.CreateRequest) (strin
 
 	c.nextID++
 	id := "server-" + strconv.Itoa(c.nextID)
+	imageID := req.ImageID
+	if req.VolumeSize > 0 {
+		imageID = ""
+	}
 
 	if c.servers == nil {
 		c.servers = make(map[string]entry)
 	}
 	c.servers[id] = entry{
-		server: cloud.Server{ID: id, Name: req.Name, Status: "BUILD", Created: time.Now(), ImageID: req.ImageID},
+		server: cloud.Server{ID: id, Name: req.Name, Status: "BUILD", Created: time.Now(), ImageID: imageID},
 		tags:   slices.Clone(req.Tags),
 	}
 	c.created = append(c.created, req)

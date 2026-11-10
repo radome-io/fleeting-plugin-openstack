@@ -76,7 +76,11 @@ func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings pro
 		return provider.ProviderInfo{}, err
 	}
 
-	client, err := g.connect(ctx, cloud.Options{Cloud: g.Cloud, CloudsConfig: g.CloudsConfig})
+	client, err := g.connect(ctx, cloud.Options{
+		Cloud:        g.Cloud,
+		CloudsConfig: g.CloudsConfig,
+		VolumeTypes:  g.Server.VolumeType != "",
+	})
 	if err != nil {
 		return provider.ProviderInfo{}, err
 	}
@@ -230,13 +234,15 @@ func (g *InstanceGroup) create(ctx context.Context, n int) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("server.image: %w", err)
 	}
-	g.rememberImage(image)
+	g.rememberImage(image.ID, image)
 
 	for created := range n {
 		req := cloud.CreateRequest{
 			Name:             g.serverName(),
 			FlavorID:         g.flavorID,
 			ImageID:          image.ID,
+			VolumeSize:       g.Server.VolumeSize,
+			VolumeType:       g.Server.VolumeType,
 			NetworkIDs:       g.networkIDs,
 			SecurityGroupIDs: g.securityGroupIDs,
 			KeyName:          g.Server.KeyName,
@@ -382,29 +388,37 @@ func (g *InstanceGroup) serverName() string {
 	return g.Name + "-" + strings.ToLower(rand.Text()[:8])
 }
 
-func (g *InstanceGroup) rememberImage(image cloud.Image) {
+// rememberImage caches an image under the image ID a server lists: its own, or
+// none for a volume-backed server.
+func (g *InstanceGroup) rememberImage(id string, image cloud.Image) {
 	g.imagesMu.Lock()
 	defer g.imagesMu.Unlock()
 
-	g.images[image.ID] = image
+	g.images[id] = image
 }
 
-// platform returns the OS and architecture of an image, or linux on amd64
-// when there is no image. Other errors are returned: the runner caches the
+// platform returns the OS and architecture of a server's image, or linux on
+// amd64 when the image is gone. A volume-backed server lists no image:
+// server.image stands for it. Other errors are returned: the runner caches the
 // result.
 func (g *InstanceGroup) platform(ctx context.Context, imageID string) (osName, arch string, err error) {
 	g.imagesMu.Lock()
 	image, known := g.images[imageID]
 	g.imagesMu.Unlock()
 
-	if !known && imageID != "" {
-		found, err := g.client.GetImage(ctx, imageID)
+	if !known {
+		ref, lookup := imageID, g.client.GetImage
+		if imageID == "" {
+			ref, lookup = g.Server.Image, g.client.FindImage
+		}
+
+		found, err := lookup(ctx, ref)
 		switch {
 		case err == nil:
 			image = found
-			g.rememberImage(found)
+			g.rememberImage(imageID, found)
 		case !errors.Is(err, cloud.ErrNotFound):
-			return "", "", fmt.Errorf("read the platform of image %s: %w", imageID, err)
+			return "", "", fmt.Errorf("read the platform of image %s: %w", ref, err)
 		}
 	}
 
