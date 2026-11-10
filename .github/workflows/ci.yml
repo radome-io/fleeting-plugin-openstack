@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # Dependabot does not bump Go in mise.toml, and the binaries embed the standard library
 
 permissions:
   contents: read

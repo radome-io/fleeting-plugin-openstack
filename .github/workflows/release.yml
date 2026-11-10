@@ -23,6 +23,7 @@ jobs:
         with:
           cache: false # a cache saved by another workflow could change the tools
       - run: mise run test
+      - run: mise run vuln
       - run: mise run package
       - run: git cliff --latest --strip header --output release-notes.md
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
