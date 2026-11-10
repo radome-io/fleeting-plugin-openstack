@@ -132,13 +132,13 @@ func (g *InstanceGroup) Update(ctx context.Context, update func(id string, state
 	}
 
 	now := time.Now()
-	listed := make(map[string]bool, len(servers))
+	listed := make(map[string]provider.State, len(servers))
 	broken := make(map[string]string)
 
 	for _, s := range servers {
-		listed[s.ID] = true
-
 		state, reason := classify(s, now, g.buildTimeout)
+		listed[s.ID] = state
+
 		switch {
 		case reason != "":
 			broken[s.ID] = reason
@@ -156,7 +156,7 @@ func (g *InstanceGroup) Update(ctx context.Context, update func(id string, state
 	g.backoff.listed(listed)
 
 	for id := range g.deletions {
-		if !listed[id] {
+		if _, ok := listed[id]; !ok {
 			delete(g.deletions, id)
 		}
 	}

@@ -462,6 +462,29 @@ func TestIncreaseBacksOffAfterABuildTimeout(t *testing.T) {
 	})
 }
 
+func TestIncreaseIgnoresServersDeletedWhileBuilding(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		backend := newBackend()
+		g := initGroup(t, backend, validConfig())
+
+		_, err := g.Increase(t.Context(), 2)
+		require.NoError(t, err)
+		require.Len(t, states(t, g), 2)
+
+		// Nova never finishes deleting server-1: Reap is not called.
+		_, err = g.Decrease(t.Context(), []string{"server-1"})
+		require.NoError(t, err)
+		require.NoError(t, backend.Set(cloud.Server{ID: "server-2", Status: "ERROR"}))
+		states(t, g)
+
+		time.Sleep(30 * time.Second)
+		succeeded, err := g.Increase(t.Context(), 1)
+
+		require.NoError(t, err)
+		assert.Equal(t, 1, succeeded, "a server deleted while building is not waited for")
+	})
+}
+
 func TestIncreaseFails(t *testing.T) {
 	backend := newBackend()
 	g := initGroup(t, backend, validConfig())
