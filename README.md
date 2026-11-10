@@ -29,15 +29,17 @@ configuration, and its release notes say so.
 | Floating IPs | ✅ When the cloud attaches them |
 | Multi-arch servers (amd64, arm64) | ✅ |
 | Broken server cleanup, backoff and retries | ✅ |
+| Boot from volume | ✅ |
 | Credentials provisioned per server | ❌ |
 | Suspend and resume | ❌ |
-| Boot from volume | ❌ |
 
 ## Requirements
 
-- Nova API microversion 2.52 or later.
+- Nova API microversion 2.52 or later, 2.67 with `server.volume_type`.
 - An OpenStack user that can create, list and delete servers, list flavors,
   networks, security groups and server groups, and read images and key pairs.
+  With `server.volume_size`, it must also be able to create volumes, within
+  the volume quota.
 - An image that can run your jobs, or a stock image with user data that
   installs what they need, such as Docker.
 - An SSH key or password the image accepts. The plugin does not provision
@@ -133,6 +135,8 @@ runcmd:
 | `tag` | `fleeting:<name>` | The Nova tag marking the group's servers. The plugin may delete any server carrying it, so give each runner manager in a project its own. |
 | `server.flavor` | Required | Name or ID. |
 | `server.image` | Required | Name or ID. A name resolves at each scale-up to the newest active image with that name, public images included: publishing a new image rolls it out. Use an ID to pin one. |
+| `server.volume_size` | | Boot from a new volume of this size, in GiB, made from the image and deleted with the server: for flavors without a root disk, or for a larger disk. |
+| `server.volume_type` | | The volume type, with `server.volume_size`. Needs Nova API microversion 2.67. |
 | `server.networks` | Required | Names or IDs. |
 | `server.security_groups` | | Names or IDs. |
 | `server.key_name` | | A Nova key pair. |
@@ -161,7 +165,9 @@ floating IP. `use_external_addr` makes the runner use the external one.
 
 When `connector_config` sets no `os` or `arch`, the plugin reads them from the
 image's `os_type` and `architecture` properties, and defaults to linux and
-amd64. The protocol defaults to SSH, or WinRM for Windows.
+amd64. A server booted from a volume lists no image: the plugin reads the
+properties of `server.image` instead. The protocol defaults to SSH, or WinRM
+for Windows.
 
 ## How it works
 

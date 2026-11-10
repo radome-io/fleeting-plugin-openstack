@@ -40,6 +40,13 @@ func TestValidate(t *testing.T) {
 			},
 		},
 		{name: "largest user data", change: func(c *Config) { c.Server.UserData = strings.Repeat("a", 49149) }},
+		{
+			name: "boot from a volume",
+			change: func(c *Config) {
+				c.Server.VolumeSize = 20
+				c.Server.VolumeType = "ssd"
+			},
+		},
 		{name: "longest name with the default tag", change: func(c *Config) { c.Name = strings.Repeat("a", 51) }},
 		{
 			name: "longest name with a tag",
@@ -92,6 +99,16 @@ func TestValidate(t *testing.T) {
 			name:   "no image",
 			change: func(c *Config) { c.Server.Image = "" },
 			err:    "server.image is required",
+		},
+		{
+			name:   "negative volume size",
+			change: func(c *Config) { c.Server.VolumeSize = -1 },
+			err:    "server.volume_size -1 must be a positive number of GiB",
+		},
+		{
+			name:   "volume type without a volume size",
+			change: func(c *Config) { c.Server.VolumeType = "ssd" },
+			err:    "server.volume_type needs server.volume_size",
 		},
 		{
 			name:   "no network",

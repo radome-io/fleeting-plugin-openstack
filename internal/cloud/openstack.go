@@ -24,16 +24,21 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/utils"
 )
 
-// microversion 2.52 is the first that tags a server at creation.
-const microversion = "2.52"
+// Nova microversions: 2.52 is the first that tags a server at creation, 2.67
+// the first that gives a block device a volume type.
+const (
+	microversion           = "2.52"
+	volumeTypeMicroversion = "2.67"
+)
 
 // requestTimeout keeps a hung request from blocking the runner's scaling loop.
 const requestTimeout = time.Minute
 
-// Options locate the cloud.
+// Options locate the cloud, and say which API features the plugin needs.
 type Options struct {
 	Cloud        string // clouds.yaml entry
 	CloudsConfig string // clouds.yaml path; standard locations when empty
+	VolumeTypes  bool   // the servers' volumes have a type
 }
 
 type openStack struct {
@@ -71,7 +76,12 @@ func New(ctx context.Context, opts Options) (Client, error) {
 		return nil, fmt.Errorf("find the compute endpoint: %w", err)
 	}
 
-	versioned, err := utils.RequireMicroversion(ctx, *nova, microversion)
+	required := microversion
+	if opts.VolumeTypes {
+		required = volumeTypeMicroversion
+	}
+
+	versioned, err := utils.RequireMicroversion(ctx, *nova, required)
 	if err != nil {
 		return nil, fmt.Errorf("negotiate the compute API version: %w", err)
 	}
@@ -143,6 +153,22 @@ func (o *openStack) CreateServer(ctx context.Context, req CreateRequest) (string
 		userData = []byte(base64.StdEncoding.EncodeToString([]byte(req.UserData)))
 	}
 
+	imageRef := req.ImageID
+	var volumes []servers.BlockDevice
+	if req.VolumeSize > 0 {
+		// Nova makes the volume from the image, boots from it, and deletes it
+		// with the server. It then wants no imageRef.
+		imageRef = ""
+		volumes = []servers.BlockDevice{{
+			SourceType:          servers.SourceImage,
+			UUID:                req.ImageID,
+			DestinationType:     servers.DestinationVolume,
+			VolumeSize:          req.VolumeSize,
+			VolumeType:          req.VolumeType,
+			DeleteOnTermination: true,
+		}}
+	}
+
 	// Unset, the cloud and the image decide.
 	var configDrive *bool
 	if req.ConfigDrive {
@@ -152,7 +178,8 @@ func (o *openStack) CreateServer(ctx context.Context, req CreateRequest) (string
 	var opts servers.CreateOptsBuilder = servers.CreateOpts{
 		Name:             req.Name,
 		FlavorRef:        req.FlavorID,
-		ImageRef:         req.ImageID,
+		ImageRef:         imageRef,
+		BlockDevice:      volumes,
 		Networks:         attached,
 		SecurityGroups:   req.SecurityGroupIDs,
 		UserData:         userData,

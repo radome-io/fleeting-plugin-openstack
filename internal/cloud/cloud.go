@@ -68,6 +68,8 @@ type CreateRequest struct {
 	Name             string
 	FlavorID         string
 	ImageID          string
+	VolumeSize       int // GiB; boots from a new volume made from the image
+	VolumeType       string
 	NetworkIDs       []string
 	SecurityGroupIDs []string
 	KeyName          string
