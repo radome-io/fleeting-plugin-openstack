@@ -106,9 +106,12 @@ func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings pro
 		return provider.ProviderInfo{}, fmt.Errorf("address_network %q must be one of server.networks", g.AddressNetwork)
 	}
 
-	securityGroupIDs, err := findAll(ctx, g.Server.SecurityGroups, client.FindSecurityGroup)
-	if err != nil {
-		return provider.ProviderInfo{}, fmt.Errorf("server.security_groups: %w", err)
+	securityGroupIDs := make([]string, len(g.Server.SecurityGroups))
+	for i, ref := range g.Server.SecurityGroups {
+		securityGroupIDs[i], err = client.FindSecurityGroup(ctx, ref)
+		if err != nil {
+			return provider.ProviderInfo{}, fmt.Errorf("server.security_groups: %w", err)
+		}
 	}
 
 	var serverGroupID string
@@ -441,17 +444,4 @@ func goArch(architecture string) string {
 	default:
 		return architecture
 	}
-}
-
-func findAll(ctx context.Context, refs []string, find func(context.Context, string) (string, error)) ([]string, error) {
-	ids := make([]string, len(refs))
-	for i, ref := range refs {
-		id, err := find(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		ids[i] = id
-	}
-
-	return ids, nil
 }
