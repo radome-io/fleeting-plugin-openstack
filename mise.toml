@@ -8,6 +8,7 @@ git-cliff = "2"
 syft = "1"
 "go:golang.org/x/vuln/cmd/govulncheck" = "1"
 "go:gitlab.com/gitlab-org/fleeting/fleeting-artifact/cmd/fleeting-artifact" = "0.0.0-20261028004323-4b6f2931bc9b"
+gh = "2"
 
 [tasks.build]
 description = "Build the plugin into out/, or into $OUT"
