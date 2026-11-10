@@ -149,8 +149,10 @@ func TestCreateServer(t *testing.T) {
 				Metadata:         map[string]string{"purpose": "ci"},
 				Tags:             []string{"fleeting:runner"},
 				AvailabilityZone: "nova",
+				ServerGroupID:    "8f3a9c1e-4b2d-4e6f-9a7b-1c2d3e4f5a6b",
 			},
 			body: map[string]any{
+				"os:scheduler_hints": map[string]any{"group": "8f3a9c1e-4b2d-4e6f-9a7b-1c2d3e4f5a6b"},
 				"server": map[string]any{
 					"name":              "runner-abcdefgh",
 					"flavorRef":         "flavor-large",
@@ -408,6 +410,28 @@ func TestFindSecurityGroup(t *testing.T) {
 	require.EqualError(t, err, `security group "default": 2 share that name, use an ID`)
 
 	_, err = client.FindSecurityGroup(t.Context(), "missing")
+	require.ErrorIs(t, err, ErrNotFound)
+}
+
+func TestFindServerGroup(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /compute/os-server-groups", func(w http.ResponseWriter, _ *http.Request) {
+		respond(t, w, http.StatusOK, `{"server_groups": [
+			{"id": "group-workers", "name": "workers", "policy": "soft-anti-affinity"},
+			{"id": "group-builders", "name": "builders", "policy": "anti-affinity"}
+		]}`)
+	})
+	client := newTestClient(t, mux)
+
+	id, err := client.FindServerGroup(t.Context(), "workers")
+	require.NoError(t, err)
+	assert.Equal(t, "group-workers", id)
+
+	id, err = client.FindServerGroup(t.Context(), "group-builders")
+	require.NoError(t, err)
+	assert.Equal(t, "group-builders", id)
+
+	_, err = client.FindServerGroup(t.Context(), "missing")
 	require.ErrorIs(t, err, ErrNotFound)
 }
 

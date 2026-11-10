@@ -30,6 +30,7 @@ type Client struct {
 	Flavors        map[string]string
 	Networks       map[string]string
 	SecurityGroups map[string]string
+	ServerGroups   map[string]string
 	Images         map[string]cloud.Image
 	KeyPairs       map[string]bool
 
@@ -234,6 +235,13 @@ func (c *Client) FindNetwork(_ context.Context, ref string) (cloud.Network, erro
 // FindSecurityGroup looks in SecurityGroups.
 func (c *Client) FindSecurityGroup(_ context.Context, ref string) (string, error) {
 	id, _, err := find("security group", c.SecurityGroups, ref)
+
+	return id, err
+}
+
+// FindServerGroup looks in ServerGroups.
+func (c *Client) FindServerGroup(_ context.Context, ref string) (string, error) {
+	id, _, err := find("server group", c.ServerGroups, ref)
 
 	return id, err
 }
