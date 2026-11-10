@@ -110,7 +110,9 @@ and Regions** against `max_instances`.
     idle_time = "10m"
 ```
 
-The cloud-init file is the one in the [README](../../README.md#configuration).
+The cloud-init file is the one in the [README](../../README.md#configuration). On
+`Ext-Net`, a server's internal and external addresses are the same, so
+`use_external_addr` makes no difference.
 
 ## Checking a project
 
