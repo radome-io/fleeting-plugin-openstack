@@ -41,7 +41,7 @@ type Config struct {
 	// it. Defaults to fleeting:<name>.
 	Tag            string       `json:"tag"`
 	Server         ServerConfig `json:"server"`
-	AddressNetwork string       `json:"address_network"` // network name, required with several networks
+	AddressNetwork string       `json:"address_network"` // name or ID, one of server.networks; required with several networks
 	AddressFamily  string       `json:"address_family"`  // ipv4 (default) or ipv6
 	BuildTimeout   string       `json:"build_timeout"`   // Go duration, default 15m
 }

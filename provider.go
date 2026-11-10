@@ -38,6 +38,7 @@ type InstanceGroup struct {
 	settings         provider.Settings
 	flavorID         string
 	networkIDs       []string
+	addressNetwork   string // address_network's name, the key Nova lists addresses under
 	securityGroupIDs []string
 	addressVersion   int
 	buildTimeout     time.Duration
@@ -52,8 +53,9 @@ type InstanceGroup struct {
 	images   map[string]cloud.Image
 }
 
-// Init validates the configuration and checks that the flavor, networks,
-// security groups, key pair and image exist.
+// Init validates the configuration, checks that the flavor, networks, security
+// groups, key pair and image exist, and that address_network is one of the
+// networks.
 func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings provider.Settings) (provider.ProviderInfo, error) {
 	if g.connect == nil {
 		g.connect = cloud.New
@@ -83,9 +85,20 @@ func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings pro
 		return provider.ProviderInfo{}, fmt.Errorf("server.flavor: %w", err)
 	}
 
-	networkIDs, err := findAll(ctx, g.Server.Networks, client.FindNetwork)
-	if err != nil {
-		return provider.ProviderInfo{}, fmt.Errorf("server.networks: %w", err)
+	networkIDs := make([]string, len(g.Server.Networks))
+	var addressNetwork string
+	for i, ref := range g.Server.Networks {
+		network, err := client.FindNetwork(ctx, ref)
+		if err != nil {
+			return provider.ProviderInfo{}, fmt.Errorf("server.networks: %w", err)
+		}
+		networkIDs[i] = network.ID
+		if g.AddressNetwork == network.ID || g.AddressNetwork == network.Name {
+			addressNetwork = network.Name
+		}
+	}
+	if g.AddressNetwork != "" && addressNetwork == "" {
+		return provider.ProviderInfo{}, fmt.Errorf("address_network %q must be one of server.networks", g.AddressNetwork)
 	}
 
 	securityGroupIDs, err := findAll(ctx, g.Server.SecurityGroups, client.FindSecurityGroup)
@@ -108,6 +121,7 @@ func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings pro
 	g.userData = userData
 	g.flavorID = flavorID
 	g.networkIDs = networkIDs
+	g.addressNetwork = addressNetwork
 	g.securityGroupIDs = securityGroupIDs
 	g.addressVersion = parsed.addressVersion
 	g.buildTimeout = parsed.buildTimeout
@@ -268,7 +282,7 @@ func (g *InstanceGroup) ConnectInfo(ctx context.Context, id string) (provider.Co
 		return provider.ConnectInfo{}, fmt.Errorf("server %s is not running: %s", id, describe(s))
 	}
 
-	internal, external, err := addresses(s, g.AddressNetwork, g.addressVersion)
+	internal, external, err := addresses(s, g.addressNetwork, g.addressVersion)
 	if err != nil {
 		return provider.ConnectInfo{}, err
 	}

@@ -19,7 +19,7 @@ type Client interface {
 	CreateServer(ctx context.Context, req CreateRequest) (id string, err error)
 	DeleteServer(ctx context.Context, id string) error // succeeds when already gone
 	FindFlavor(ctx context.Context, ref string) (id string, err error)
-	FindNetwork(ctx context.Context, ref string) (id string, err error)
+	FindNetwork(ctx context.Context, ref string) (Network, error)
 	FindSecurityGroup(ctx context.Context, ref string) (id string, err error)
 	CheckKeyPair(ctx context.Context, name string) error
 	// FindImage returns the newest active image with that name, or else the
@@ -47,6 +47,12 @@ type Address struct {
 	IP       string
 	Version  int // 4 or 6
 	Floating bool
+}
+
+// Network is a Neutron network.
+type Network struct {
+	ID   string
+	Name string // the key of a server's addresses on it
 }
 
 // Image is a Glance image.

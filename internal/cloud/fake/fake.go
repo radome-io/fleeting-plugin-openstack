@@ -219,17 +219,23 @@ func (c *Client) Reap() {
 
 // FindFlavor looks in Flavors.
 func (c *Client) FindFlavor(_ context.Context, ref string) (string, error) {
-	return find("flavor", c.Flavors, ref)
+	id, _, err := find("flavor", c.Flavors, ref)
+
+	return id, err
 }
 
 // FindNetwork looks in Networks.
-func (c *Client) FindNetwork(_ context.Context, ref string) (string, error) {
-	return find("network", c.Networks, ref)
+func (c *Client) FindNetwork(_ context.Context, ref string) (cloud.Network, error) {
+	id, name, err := find("network", c.Networks, ref)
+
+	return cloud.Network{ID: id, Name: name}, err
 }
 
 // FindSecurityGroup looks in SecurityGroups.
 func (c *Client) FindSecurityGroup(_ context.Context, ref string) (string, error) {
-	return find("security group", c.SecurityGroups, ref)
+	id, _, err := find("security group", c.SecurityGroups, ref)
+
+	return id, err
 }
 
 // CheckKeyPair looks in KeyPairs.
@@ -265,15 +271,16 @@ func (c *Client) GetImage(_ context.Context, id string) (cloud.Image, error) {
 	return cloud.Image{}, fmt.Errorf("image %q: %w", id, cloud.ErrNotFound)
 }
 
-func find(kind string, byName map[string]string, ref string) (string, error) {
+// find returns the ID and name of the item named or identified by ref.
+func find(kind string, byName map[string]string, ref string) (id, name string, err error) {
 	if id, ok := byName[ref]; ok {
-		return id, nil
+		return id, ref, nil
 	}
-	for _, id := range byName {
+	for name, id := range byName {
 		if id == ref {
-			return id, nil
+			return id, name, nil
 		}
 	}
 
-	return "", fmt.Errorf("%s %q: %w", kind, ref, cloud.ErrNotFound)
+	return "", "", fmt.Errorf("%s %q: %w", kind, ref, cloud.ErrNotFound)
 }

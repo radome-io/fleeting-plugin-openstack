@@ -185,21 +185,25 @@ func (o *openStack) FindFlavor(ctx context.Context, ref string) (string, error) 
 		return "", fmt.Errorf("read flavors: %w", err)
 	}
 
-	return pick("flavor", ref, all, func(f flavors.Flavor) (string, string) { return f.ID, f.Name })
+	flavor, err := pick("flavor", ref, all, func(f flavors.Flavor) (string, string) { return f.ID, f.Name })
+
+	return flavor.ID, err
 }
 
-func (o *openStack) FindNetwork(ctx context.Context, ref string) (string, error) {
+func (o *openStack) FindNetwork(ctx context.Context, ref string) (Network, error) {
 	pages, err := networks.List(o.neutron, nil).AllPages(ctx)
 	if err != nil {
-		return "", fmt.Errorf("list networks: %w", err)
+		return Network{}, fmt.Errorf("list networks: %w", err)
 	}
 
 	all, err := networks.ExtractNetworks(pages)
 	if err != nil {
-		return "", fmt.Errorf("read networks: %w", err)
+		return Network{}, fmt.Errorf("read networks: %w", err)
 	}
 
-	return pick("network", ref, all, func(n networks.Network) (string, string) { return n.ID, n.Name })
+	network, err := pick("network", ref, all, func(n networks.Network) (string, string) { return n.ID, n.Name })
+
+	return Network{ID: network.ID, Name: network.Name}, err
 }
 
 func (o *openStack) FindSecurityGroup(ctx context.Context, ref string) (string, error) {
@@ -213,7 +217,9 @@ func (o *openStack) FindSecurityGroup(ctx context.Context, ref string) (string, 
 		return "", fmt.Errorf("read security groups: %w", err)
 	}
 
-	return pick("security group", ref, all, func(g groups.SecGroup) (string, string) { return g.ID, g.Name })
+	group, err := pick("security group", ref, all, func(g groups.SecGroup) (string, string) { return g.ID, g.Name })
+
+	return group.ID, err
 }
 
 func (o *openStack) CheckKeyPair(ctx context.Context, name string) error {
@@ -264,27 +270,27 @@ func (o *openStack) GetImage(ctx context.Context, id string) (Image, error) {
 	return toImage(*image), nil
 }
 
-// pick returns the ID of the item with ID ref, or else of the one named ref.
-func pick[T any](kind, ref string, items []T, key func(T) (id, name string)) (string, error) {
-	var named []string
+// pick returns the item with ID ref, or else the one named ref.
+func pick[T any](kind, ref string, items []T, key func(T) (id, name string)) (found T, err error) {
+	var named []T
 
 	for _, item := range items {
 		id, name := key(item)
 		if id == ref {
-			return id, nil
+			return item, nil
 		}
 		if name == ref {
-			named = append(named, id)
+			named = append(named, item)
 		}
 	}
 
 	switch len(named) {
 	case 0:
-		return "", fmt.Errorf("%s %q: %w", kind, ref, ErrNotFound)
+		return found, fmt.Errorf("%s %q: %w", kind, ref, ErrNotFound)
 	case 1:
 		return named[0], nil
 	default:
-		return "", fmt.Errorf("%s %q: %d share that name, use an ID", kind, ref, len(named))
+		return found, fmt.Errorf("%s %q: %d share that name, use an ID", kind, ref, len(named))
 	}
 }
 
