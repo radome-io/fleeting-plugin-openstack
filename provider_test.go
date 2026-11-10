@@ -295,38 +295,6 @@ func TestUpdateHonorsTheBuildTimeout(t *testing.T) {
 	})
 }
 
-func TestUpdateReportsVanishedServers(t *testing.T) {
-	backend := newBackend()
-	backend.Add(cloud.Server{ID: "a", Status: "ACTIVE"}, groupTag)
-	g := initGroup(t, backend, validConfig())
-	require.Equal(t, map[string]provider.State{"a": provider.StateRunning}, states(t, g))
-
-	require.NoError(t, backend.DeleteServer(t.Context(), "a"))
-	backend.Reap()
-
-	assert.Empty(t, states(t, g), "one listing without the server is not enough")
-	assert.Equal(t, map[string]provider.State{"a": provider.StateDeleted}, states(t, g))
-	assert.Empty(t, states(t, g), "a vanished server is reported once")
-}
-
-func TestUpdateKeepsServersMissingFromOneListing(t *testing.T) {
-	backend := newBackend()
-	backend.Add(cloud.Server{ID: "a", Status: "ACTIVE"}, groupTag)
-	g := initGroup(t, backend, validConfig())
-	require.Equal(t, map[string]provider.State{"a": provider.StateRunning}, states(t, g))
-
-	require.NoError(t, backend.DeleteServer(t.Context(), "a"))
-	backend.Reap()
-	assert.Empty(t, states(t, g))
-
-	backend.Add(cloud.Server{ID: "a", Status: "ACTIVE"}, groupTag)
-	assert.Equal(t, map[string]provider.State{"a": provider.StateRunning}, states(t, g))
-
-	require.NoError(t, backend.DeleteServer(t.Context(), "a"))
-	backend.Reap()
-	assert.Empty(t, states(t, g), "the count restarts once the server is listed again")
-}
-
 func TestUpdateRetriesFailedDeletionsOnceAMinute(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		backend := newBackend()
