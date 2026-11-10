@@ -71,6 +71,7 @@ type CreateRequest struct {
 	SecurityGroupIDs []string
 	KeyName          string
 	UserData         string
+	ConfigDrive      bool
 	Metadata         map[string]string
 	Tags             []string
 	AvailabilityZone string

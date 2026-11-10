@@ -231,6 +231,7 @@ func (g *InstanceGroup) create(ctx context.Context, n int) (int, error) {
 			SecurityGroupIDs: g.securityGroupIDs,
 			KeyName:          g.Server.KeyName,
 			UserData:         g.userData,
+			ConfigDrive:      g.Server.ConfigDrive,
 			Metadata:         g.Server.Metadata,
 			Tags:             append([]string{g.tag()}, g.Server.Tags...),
 			AvailabilityZone: g.Server.AvailabilityZone,

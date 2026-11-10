@@ -130,41 +130,78 @@ func TestGetServer(t *testing.T) {
 }
 
 func TestCreateServer(t *testing.T) {
-	var body map[string]map[string]any
+	tests := []struct {
+		name string
+		req  CreateRequest
+		body map[string]any
+	}{
+		{
+			name: "every setting",
+			req: CreateRequest{
+				Name:             "runner-abcdefgh",
+				FlavorID:         "flavor-large",
+				ImageID:          "image-ubuntu",
+				NetworkIDs:       []string{"network-public"},
+				SecurityGroupIDs: []string{"group-ssh"},
+				KeyName:          "runner",
+				UserData:         "#cloud-config\n",
+				ConfigDrive:      true,
+				Metadata:         map[string]string{"purpose": "ci"},
+				Tags:             []string{"fleeting:runner"},
+				AvailabilityZone: "nova",
+			},
+			body: map[string]any{
+				"server": map[string]any{
+					"name":              "runner-abcdefgh",
+					"flavorRef":         "flavor-large",
+					"imageRef":          "image-ubuntu",
+					"networks":          []any{map[string]any{"uuid": "network-public"}},
+					"security_groups":   []any{map[string]any{"name": "group-ssh"}},
+					"key_name":          "runner",
+					"user_data":         base64.StdEncoding.EncodeToString([]byte("#cloud-config\n")),
+					"config_drive":      true,
+					"metadata":          map[string]any{"purpose": "ci"},
+					"tags":              []any{"fleeting:runner"},
+					"availability_zone": "nova",
+				},
+			},
+		},
+		{
+			name: "defaults",
+			req: CreateRequest{
+				Name:       "runner-abcdefgh",
+				FlavorID:   "flavor-large",
+				ImageID:    "image-ubuntu",
+				NetworkIDs: []string{"network-public"},
+			},
+			body: map[string]any{
+				"server": map[string]any{
+					"name":      "runner-abcdefgh",
+					"flavorRef": "flavor-large",
+					"imageRef":  "image-ubuntu",
+					"networks":  []any{map[string]any{"uuid": "network-public"}},
+				},
+			},
+		},
+	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /compute/servers", func(w http.ResponseWriter, r *http.Request) {
-		assert.NoError(t, json.NewDecoder(r.Body).Decode(&body))
-		respond(t, w, http.StatusAccepted, `{"server": {"id": "new"}}`)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var body map[string]any
 
-	id, err := newTestClient(t, mux).CreateServer(t.Context(), CreateRequest{
-		Name:             "runner-abcdefgh",
-		FlavorID:         "flavor-large",
-		ImageID:          "image-ubuntu",
-		NetworkIDs:       []string{"network-public"},
-		SecurityGroupIDs: []string{"group-ssh"},
-		KeyName:          "runner",
-		UserData:         "#cloud-config\n",
-		Metadata:         map[string]string{"purpose": "ci"},
-		Tags:             []string{"fleeting:runner"},
-		AvailabilityZone: "nova",
-	})
+			mux := http.NewServeMux()
+			mux.HandleFunc("POST /compute/servers", func(w http.ResponseWriter, r *http.Request) {
+				assert.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+				respond(t, w, http.StatusAccepted, `{"server": {"id": "new"}}`)
+			})
 
-	require.NoError(t, err)
-	assert.Equal(t, "new", id)
-	assert.Equal(t, map[string]any{
-		"name":              "runner-abcdefgh",
-		"flavorRef":         "flavor-large",
-		"imageRef":          "image-ubuntu",
-		"networks":          []any{map[string]any{"uuid": "network-public"}},
-		"security_groups":   []any{map[string]any{"name": "group-ssh"}},
-		"key_name":          "runner",
-		"user_data":         base64.StdEncoding.EncodeToString([]byte("#cloud-config\n")),
-		"metadata":          map[string]any{"purpose": "ci"},
-		"tags":              []any{"fleeting:runner"},
-		"availability_zone": "nova",
-	}, body["server"])
+			id, err := newTestClient(t, mux).CreateServer(t.Context(), tt.req)
+
+			require.NoError(t, err)
+			assert.Equal(t, "new", id)
+			assert.Equal(t, tt.body, body)
+		})
+	}
 }
 
 func TestCreateServerUserData(t *testing.T) {

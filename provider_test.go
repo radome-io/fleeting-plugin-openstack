@@ -335,6 +335,7 @@ func TestIncrease(t *testing.T) {
 	config.Server.SecurityGroups = []string{"ssh-from-manager"}
 	config.Server.KeyName = "runner"
 	config.Server.UserData = "#cloud-config\n"
+	config.Server.ConfigDrive = true
 	config.Server.Metadata = map[string]string{"purpose": "ci"}
 	g := initGroup(t, backend, config)
 
@@ -357,6 +358,7 @@ func TestIncrease(t *testing.T) {
 			SecurityGroupIDs: []string{"group-ssh"},
 			KeyName:          "runner",
 			UserData:         "#cloud-config\n",
+			ConfigDrive:      true,
 			Metadata:         map[string]string{"purpose": "ci"},
 			Tags:             []string{groupTag},
 		}, req)

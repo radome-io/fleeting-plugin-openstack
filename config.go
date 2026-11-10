@@ -57,7 +57,8 @@ type ServerConfig struct {
 	KeyName          string            `json:"key_name"`
 	UserData         string            `json:"user_data"`
 	UserDataFile     string            `json:"user_data_file"` // read at startup, instead of user_data
-	Tags             []string          `json:"tags"`           // added to the group tag
+	ConfigDrive      bool              `json:"config_drive"`
+	Tags             []string          `json:"tags"` // added to the group tag
 	Metadata         map[string]string `json:"metadata"`
 	AvailabilityZone string            `json:"availability_zone"`
 }
