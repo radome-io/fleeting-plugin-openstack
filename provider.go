@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -20,10 +19,6 @@ import (
 )
 
 var _ provider.InstanceGroup = (*InstanceGroup)(nil)
-
-// missedListings is how many listings in a row must miss a server before it is
-// reported deleted.
-const missedListings = 2
 
 // deletionRetryInterval spaces out retries of a failed deletion.
 const deletionRetryInterval = time.Minute
@@ -51,7 +46,6 @@ type InstanceGroup struct {
 
 	// Fleeting may overlap Update with its shutdown.
 	updateMu  sync.Mutex
-	misses    map[string]int       // missed listings in a row, by server
 	deletions map[string]time.Time // last deletion request, by broken server
 
 	imagesMu sync.Mutex
@@ -117,7 +111,6 @@ func (g *InstanceGroup) Init(ctx context.Context, log hclog.Logger, settings pro
 	g.securityGroupIDs = securityGroupIDs
 	g.addressVersion = parsed.addressVersion
 	g.buildTimeout = parsed.buildTimeout
-	g.misses = make(map[string]int)
 	g.deletions = make(map[string]time.Time)
 	g.images = make(map[string]cloud.Image)
 	g.log = log.With("cloud", g.Cloud, "region", client.Region(), "group", g.Name)
@@ -166,11 +159,6 @@ func (g *InstanceGroup) Update(ctx context.Context, update func(id string, state
 		if !listed[id] {
 			delete(g.deletions, id)
 		}
-	}
-
-	for _, id := range g.vanished(listed) {
-		g.log.Info("server no longer listed", "id", id)
-		update(id, provider.StateDeleted)
 	}
 
 	return nil
@@ -362,31 +350,6 @@ func (g *InstanceGroup) deleteBroken(ctx context.Context, s cloud.Server, reason
 func (g *InstanceGroup) logPause(failures int, pause time.Duration, reason string) {
 	g.log.Warn("pausing scale-ups: new servers fail to come up",
 		"failures_in_a_row", failures, "pause", pause, "reason", reason)
-}
-
-// vanished returns the servers missing from missedListings listings in a row.
-func (g *InstanceGroup) vanished(listed map[string]bool) []string {
-	var gone []string
-
-	for id := range g.misses {
-		if listed[id] {
-			continue
-		}
-
-		g.misses[id]++
-		if g.misses[id] >= missedListings {
-			gone = append(gone, id)
-			delete(g.misses, id)
-		}
-	}
-
-	for id := range listed {
-		g.misses[id] = 0
-	}
-
-	slices.Sort(gone)
-
-	return gone
 }
 
 func (g *InstanceGroup) serverName() string {

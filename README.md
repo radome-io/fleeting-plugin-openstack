@@ -176,9 +176,12 @@ doubles the pause, up to 10 minutes, and a server that comes up ends it. The
 plugin logs why it pauses.
 
 A server fails its heartbeat when it is gone or no longer running, not when
-the API call fails. A server deleted outside the plugin leaves the group once
-it is missing from two listings in a row. A server Nova never finishes
-deleting stays in the group until you delete it.
+the API call fails. Fleeting drops a server missing from the listings: at once
+if it was being deleted, and after six listings in a row otherwise, up to six
+minutes when the group is idle. Until then, the runner may give a job to a
+server deleted outside the plugin, unless
+`FF_USE_FLEETING_ACQUIRE_HEARTBEATS` makes it check the server first. A server
+Nova never finishes deleting stays in the group until you delete it.
 
 API calls are retried up to three times, 1, 2 then 4 seconds apart, when the
 cloud answers 429 (after its `Retry-After`, up to 30 seconds). Calls that are

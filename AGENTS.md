@@ -26,9 +26,11 @@ one cloud go in its guide, under `docs/clouds/`.
 
 ## Fleeting semantics to keep in mind
 
-- Fleeting prunes an instance reported as `deleted` or `timeout` without calling
-  `Decrease`. A server the plugin still pays for is never reported that way:
-  report it as `deleting`, and delete it.
+- Fleeting prunes, without calling `Decrease`, an instance reported as `deleted`
+  or `timeout`, and one missing from `Update`: at the first miss if it was
+  deleting, after six misses in a row otherwise. So `Update` reports only the
+  servers it lists, and a server the plugin still pays for is never reported
+  `deleted` or `timeout`: report it as `deleting`, and delete it.
 - `Update` is called often (every 2 seconds while an instance is expected).
   Keep it to one list call, plus deletions of broken servers.
 - The taskscaler only backs off when a running instance fails its readiness
