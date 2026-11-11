@@ -87,7 +87,7 @@ and Regions** against `max_instances`.
 
 ```toml
 [runners.autoscaler]
-  plugin = "ghcr.io/radome-io/fleeting-plugin-openstack:0.1"
+  plugin = "ghcr.io/radome-io/fleeting-plugin-openstack:0.2"
   capacity_per_instance = 1
   max_use_count = 20
   max_instances = 4

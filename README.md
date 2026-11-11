@@ -52,7 +52,7 @@ Reference the plugin in the runner's `config.toml`, then run
 
 ```toml
 [runners.autoscaler]
-  plugin = "ghcr.io/radome-io/fleeting-plugin-openstack:0.1"
+  plugin = "ghcr.io/radome-io/fleeting-plugin-openstack:0.2"
 ```
 
 ## Configuration
@@ -84,7 +84,7 @@ A runner using it, with one job per server at a time:
     image = "alpine:latest"
 
   [runners.autoscaler]
-    plugin = "ghcr.io/radome-io/fleeting-plugin-openstack:0.1"
+    plugin = "ghcr.io/radome-io/fleeting-plugin-openstack:0.2"
     capacity_per_instance = 1
     max_use_count = 10
     max_instances = 4
