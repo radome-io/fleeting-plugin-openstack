@@ -71,7 +71,7 @@ backend = "go:gitlab.com/gitlab-org/fleeting/fleeting-artifact/cmd/fleeting-arti
 specifiers = ["0.0.0-20261028004323-4b6f2931bc9b"]
 
 [[tools."go:golang.org/x/vuln/cmd/govulncheck"]]
-version = "1.9.0"
+version = "1.10.0"
 backend = "go:golang.org/x/vuln/cmd/govulncheck"
 specifiers = ["1"]
 
